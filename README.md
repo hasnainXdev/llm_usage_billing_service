@@ -41,8 +41,49 @@ usage into costs, and lets tenants upgrade plans through Stripe Checkout -
 
 ## Run + seed
 
-_Skeleton - full instructions land in Phase 4._
+Requires Python 3.14 (`uv`), Docker, and (for the Stripe live gate) the Stripe CLI.
+
+```bash
+# 1. Database (Postgres 16)
+docker compose up -d
+
+# 2. Migrate + seed (plans + a "Demo Tenant" whose id is printed)
+uv run python -m app.db.migrate
+uv run python -m app.db.seed
+
+# 3. Run the API
+uv run uvicorn app.main:app --port 8000
+```
+
+Environment lives in `.env` (gitignored; copy `.env.example`). Stripe is test-mode
+only, forever: set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` (the latter is
+printed by `stripe listen --forward-to localhost:8000/webhooks/stripe`).
+
+```bash
+uv run pytest          # 31 tests: metering, quotas, cost, isolation, Stripe
+curl -s -X POST localhost:8000/generate \
+  -H "X-Tenant-Id: <tenant id>" -H "Idempotency-Key: k1" \
+  -d '{"usage_type":"api_call","quantity":5}'
+curl -s localhost:8000/usage -H "X-Tenant-Id: <tenant id>"
+
+# Stripe live gate (test mode):
+stripe trigger checkout.session.completed \
+  --override checkout_session:client_reference_id=<tenant id>
+```
 
 ## Honest limitations
 
-_Skeleton - written up honestly as the build progresses._
+- **Simulated AI usage.** `POST /generate` meters a declared `quantity`; no model
+  is ever called, and no real LLM key is used. Real metering would need an actual
+  call path or SDK hook into a provider.
+- **One purchasable plan.** Checkout only sells Pro (Free is the default). Adding
+  more plans means more Stripe Prices/Products (one per plan, idempotently created).
+- **Webhook events are fire-and-forget.** A 2xx to Stripe is the only ack. If the
+  DB write fails after the event is delivered, Stripe retries and the dedup ledger
+  makes the retry safe, but there is no outbound DLQ or alerting.
+- **No authentication.** The `X-Tenant-Id` header is trusted as-is; tenant isolation
+  is enforced by query scoping, not by credentials. A real deployment needs an auth
+  layer in front of these routes.
+- **No billing period rollover job yet.** "Resets at the start of next month" is
+  implied by period-keyed queries (`period_label(utc_month_start())`); a cron
+  that closes a month and opens the next is not implemented.

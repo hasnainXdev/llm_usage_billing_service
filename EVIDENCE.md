@@ -49,9 +49,40 @@ or log line) below. No placeholders. Updated as gates pass.
 
 ## Cost calculation
 
-- [ ] Monthly usage rolls up into a cost figure per tenant.
-- [ ] AI token pricing handles cached input, reasoning tokens, and output pricing correctly.
-- [ ] Pricing constants are pinned in config and covered by tests.
+- [x] Monthly usage rolls up into a cost figure per tenant.
+
+  `GET /usage` returns `{ used, limit, cost }` where `cost` breaks down by
+  category in integer micro-units. Pinned totals in one run (Pro tenant, mixed mix):
+  ```
+  tests/test_cost.py::test_pinned_cost_math_matches_config PASSED
+  # api_calls_micro == 200        (2 calls x 100)
+  # ai_input_micro == 300_000     (100K x 3000 / 1K)
+  # ai_cached_input_micro == 30_000 (100K x 300 / 1K)
+  # ai_output_micro == 1_500_000  (100K x 15000 / 1K)
+  # ai_reasoning_micro == 750_000 (50K x 15000 / 1K)
+  # total_micro == 2_580_200
+  ```
+
+- [x] AI token pricing handles cached input, reasoning tokens, and output pricing correctly.
+
+  ```
+  tests/test_cost.py::test_cached_input_is_cheaper_than_fresh_input PASSED
+  # 1K fresh == 3_000 micro; 1K cached == 300 micro; fresh > cached
+  tests/test_cost.py::test_reasoning_is_priced_as_output PASSED
+  # 1K reasoning == 15_000 micro == 1K output
+  tests/test_cost.py::test_token_categories_have_individual_rates PASSED
+  # 1K each of 4 categories == 33_300 micro total
+  ```
+
+- [x] Pricing constants are pinned in config and covered by tests.
+
+  Pinned in `app/domain/pricing.py` (`API_CALL_RATE_MICRO`, the per-category
+  `AI_TOKEN_RATE_MICRO_PER_1K` map) and cross-checked by
+  `test_pinned_constants_are_what_the_math_uses` so the tests fail if a constant
+  drifts from the math:
+  ```
+  tests/test_cost.py::test_pinned_constants_are_what_the_math_uses PASSED
+  ```
 
 ## Stripe integration
 
@@ -104,9 +135,29 @@ or log line) below. No placeholders. Updated as gates pass.
 
 ## Data model, tests & docs
 
-- [ ] DB includes tenants, plans, subscriptions, usage events; tenant data isolated.
+- [x] DB includes tenants, plans, subscriptions, usage events; tenant data isolated.
+
+  Migration `app/db/migrations/001_initial_schema.sql` creates `tenants`, `plans`,
+  `subscriptions`, `usage_events`, and `stripe_events`. Isolation is enforced by
+  tenant-scoped queries (X-Tenant-Id header) and proven:
+  ```
+  tests/test_isolation.py::test_usage_is_scoped_to_the_requesting_tenant PASSED
+  # tenant B sees 0 usage; tenant A sees its own 3 calls
+  tests/test_isolation.py::test_same_idempotency_key_across_tenants_does_not_collide PASSED
+  tests/test_isolation.py::test_plan_quota_is_per_tenant PASSED
+  ```
 - [x] Tests cover: duplicate usage, quota boundaries, cost calc, invalid webhook, duplicate webhook.
 
-  Duplicate usage and quota boundaries are green (evidence above); cost calc and
-  webhook tests land in Phase 4.
-- [ ] README + architecture diagram + setup instructions; all §-required files present.
+  ```
+  tests/test_metering.py::test_concurrent_duplicate_delivery_creates_one_row PASSED
+  tests/test_quota.py::test_over_limit_rejected_429_with_message PASSED
+  tests/test_cost.py::test_pinned_cost_math_matches_config PASSED
+  tests/test_stripe.py::test_forged_signature_rejected_400_no_db_change PASSED
+  tests/test_stripe.py::test_replay_applied_once PASSED
+  ```
+  31/31 tests green.
+- [x] README + architecture diagram + setup instructions; all §-required files present.
+
+  README.md has the architecture diagram (ASCII, `## Architecture`) plus run, seed,
+  test, and live-Stripe instructions; `docs/design.md` documents the schema and
+  decisions; `EVIDENCE.md` (this file) and `BUILDLOG.md` are maintained per gate.

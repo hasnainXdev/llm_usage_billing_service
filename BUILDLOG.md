@@ -115,6 +115,25 @@ where it was wrong, and what the human changed.
     `checkout_session:subscription=sub_...` fails because `subscription` is not a
     session-create parameter (it's populated by Stripe only after a real purchase) -
     so the live demo drives the status path with real subscription objects instead.
-    Stripe CLI also needs `--confirm` on destructive commands, and test `pm_card_visa`
-    isn't valid as a PaymentMethod id (used `-d source=tok_visa` instead).
+  Stripe CLI also needs `--confirm` on destructive commands, and test `pm_card_visa`
+  isn't valid as a PaymentMethod id (used `-d source=tok_visa` instead).
+
+## Phase 4 - close-out: every Definition-of-Done box checked with real evidence
+
+- **Human asserted "all phases are completed"; the AI verified instead of assuming.**
+  Three cost-calculation boxes, the tenant-isolation box, and the README box were
+  still unchecked. Audit findings:
+  - Cost rollup, per-category pricing, and pinned constants were already implemented
+    and tested (`tests/test_cost.py`) - only evidence was missing. Marked done with
+    real passing-test output.
+  - Tenant isolation was enforced by design (tenant-scoped queries) but had NO
+    explicit test. **AI wrote `tests/test_isolation.py`** (cross-tenant visibility,
+    idempotency-key non-collision, per-tenant quota) - 3 new passing tests.
+  - README's "Run + seed" and "Honest limitations" were still skeleton placeholders.
+    **AI wrote both sections** with real commands verified this session (migrate,
+    seed, uvicorn, pytest, Stripe trigger), and listed the honest limitations.
+- **Also:** replaced every em dash (`—`) in the repo (README, EVIDENCE, BUILDLOG,
+  docs/design.md, pyproject.toml, capstone.yaml, and all source docstrings/comments)
+  with plain hyphens, per a human style rule. `grep -rl "—"` is now empty.
+- **Verified:** 31/31 tests green.
 
