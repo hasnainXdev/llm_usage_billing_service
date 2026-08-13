@@ -95,5 +95,26 @@ where it was wrong, and what the human changed.
 - **Verified:** 28/28 tests green (forged sig rejected 400 with no DB change, replay
   applied exactly once, Free→Pro flip via signed event, past_due → 402, deleted →
   canceled, unknown tenant → unhandled-but-deduped, checkout session + 503 paths).
-  **Live Stripe CLI trigger is the next gate and still requires a credential decision.**
+- **LIVE GATE — real Stripe test-mode run (human's own test account):**
+  - Human ran `stripe login` (OAuth, browser) → CLI stored `sk_test_...`; `stripe listen
+    --forward-to localhost:8000/webhooks/stripe` printed the real `whsec_...`, which was
+    written to `.env` (gitignored). Also fixed a stale `.env` where a `pk_test_` line had
+    been sitting in the `STRIPE_WEBHOOK_SECRET` slot.
+  - `POST /billing/checkout` returned a real hosted Checkout Session URL (Pro, USD 20/mo).
+  - `stripe trigger checkout.session.completed --override checkout_session:client_reference_id=<demo>`
+    delivered a real signed event → our webhook 200 → demo tenant flipped free→pro.
+  - Replaying the same real event twice → `duplicate`, `stripe_events` ledger stays at
+    1 row, DB unchanged. Forged signature → 400 covered by the offline test.
+  - Real `stripe subscriptions update ... metadata[tenant_id]=<t2>` fired
+    `customer.subscription.updated` → tenant2 plan/status/customer/stripe_subscription_id
+    stored; real `stripe subscriptions cancel --confirm` fired `customer.subscription.deleted`
+    → tenant2 status=canceled.
+  - **Where the AI was wrong / corrected (live):** the first `stripe trigger` used
+    `--override checkout:...` — the fixture key is `checkout_session`, so `client_reference_id`
+    stayed null (event correctly recorded as `unhandled`); and injecting
+    `checkout_session:subscription=sub_...` fails because `subscription` is not a
+    session-create parameter (it's populated by Stripe only after a real purchase) —
+    so the live demo drives the status path with real subscription objects instead.
+    Stripe CLI also needs `--confirm` on destructive commands, and test `pm_card_visa`
+    isn't valid as a PaymentMethod id (used `-d source=tok_visa` instead).
 

@@ -55,21 +55,52 @@ or log line) below. No placeholders. Updated as gates pass.
 
 ## Stripe integration
 
-- [ ] Subscription checkout works end-to-end in test mode.
+- [x] Subscription checkout works end-to-end in test mode.
+
+  Live test-mode run (real `sk_test_` key, real `whsec_` from `stripe listen`):
+  ```
+  $ curl -s -X POST http://localhost:8000/billing/checkout -H "X-Tenant-Id: <demo>" -d '{"plan":"pro"}'
+  {"checkout_session_id":"cs_test_a1ecrG0qs7HqJxPBtZjnWUwJxMuphG0kVdCCXU4MlHVwOmj4dLG7wR4zCo",
+   "url":"https://checkout.stripe.com/c/pay/cs_test_a1ecrG0qs7HqJxPBtZjnWUwJxMuphG0kVdCCXU4MlHVwOmj4dLG7wR4zCo#...",
+   "price_id":"price_1U3xvzD3cXvEk4xpzkxAm4Vb"}
+  ```
+  A real hosted Checkout Session opens for the monthly Pro price (USD 20, metadata `app_plan=pro`).
+
 - [x] Webhooks verify signatures, ignore duplicate events, update tenant plan/status.
 
-  Forged signature → 400 `invalid_signature`, no DB change; replay → `duplicate`,
-  applied exactly once; signed `checkout.session.completed` flips a tenant Free→Pro:
+  Forged/malformed signature → 400 `invalid_signature`, zero DB change (offline proof):
   ```
   tests/test_stripe.py::test_forged_signature_rejected_400_no_db_change PASSED
-  tests/test_stripe.py::test_replay_applied_once PASSED            # 1 dedup row, plan=pro, cus=cus_test_1
-  tests/test_stripe.py::test_checkout_completed_flips_tenant_free_to_pro PASSED
-  tests/test_stripe.py::test_subscription_updated_sets_status_and_period PASSED  # past_due → 402 on /generate
-  tests/test_stripe.py::test_subscription_deleted_sets_canceled PASSED
-  tests/test_stripe.py::test_checkout_endpoint_503_when_stripe_not_configured PASSED
   ```
-  (Live `stripe trigger checkout.session.completed` against a real test-mode key is
-  pending a credential decision — see BUILDLOG Phase 3.)
+
+  Live `stripe trigger checkout.session.completed` (real signed event, overridden
+  `client_reference_id` = demo tenant) — tenant flipped Free → Pro, event ledgered once:
+  ```
+  $ stripe trigger checkout.session.completed --override checkout_session:client_reference_id=<demo>
+  Trigger succeeded!
+  DB: SELECT p.code, s.status ... WHERE name='Demo Tenant'  ->  pro | active
+  ```
+
+  Live replay dedup — same real event replayed twice → `duplicate`, ledger still 1 row, DB unchanged:
+  ```
+  $ curl -s -X POST /webhooks/stripe -H "stripe-signature: t=...,v1=..." --data-binary @evt_1U3xwB...
+  {"received":true,"outcome":"duplicate"}     # replay 1
+  {"received":true,"outcome":"duplicate"}     # replay 2
+  DB: SELECT count(*) FROM stripe_events WHERE stripe_event_id='evt_1U3xwBD3cXvEk4xp0ddMPx4p'  ->  1
+  ```
+
+  Live status mirroring via real Stripe objects — `metadata.tenant_id` update fired
+  `customer.subscription.updated` (tenant mapped, plan/status/customer stored), then real
+  cancellation fired `customer.subscription.deleted` (tenant → `canceled`):
+  ```
+  $ stripe subscriptions update sub_1U3xv7... -d "metadata[tenant_id]=<tenant2>"
+  DB: pro | active | sub_1U3xv7D3cXvEk4xp34Tgb0eS
+  $ stripe subscriptions cancel sub_1U3xv7... --confirm
+  DB: pro | canceled
+  ```
+  (The test subscription genuinely reports `current_period_end: null`, and the DB mirrors
+  that faithfully; the populated-period path is covered by
+  `tests/test_stripe.py::test_subscription_updated_sets_status_and_period`.)
 
 ## Data model, tests & docs
 
