@@ -66,3 +66,34 @@ where it was wrong, and what the human changed.
   exact-boundary allow, 429 with message, and a correct `GET /usage` rollup.
 
 ## Phase 3+ — (to be appended as work happens)
+
+## Phase 3 — Stripe integration (offline), gate: 28/28 tests green
+
+- **AI wrote:** `stripe_integration/client.py` (test-mode Checkout Session creation
+  via the new sync `StripeClient` API, no network calls), `stripe_integration/webhook.py`
+  (`stripe.Webhook.construct_event` signature verification), `plan_repo`,
+  `subscription_repo.update_subscription` + `get_by_stripe_subscription_id`,
+  `SubscriptionService` (applies verified events; dedup + apply in one transaction),
+  `POST /billing/checkout`, `POST /webhooks/stripe`, `tests/test_stripe.py` (8 tests).
+- **Decisions the human should be able to restate:**
+  - The DB mirrors Stripe's truth, never the source: plan/status change ONLY from a
+    signature-verified webhook event. Forged/missing signature → 400, zero DB change.
+  - Dedup = `stripe_events.stripe_event_id` UNIQUE, inserted in the SAME transaction
+    as the apply; a replay returns `duplicate` and its effect was already applied.
+  - Unhandled events (unknown type, unknown tenant) are still recorded, so a replay
+    of an unhandled event stays `duplicate`, never re-processed.
+  - Stripe secrets live in `.env` (gitignored); unconfigured Stripe → `/billing/checkout`
+    returns 503 `stripe_not_configured`.
+  - Test-mode only, forever.
+- **Where the AI was wrong / corrected:**
+  - `dict(event)` crashes on Stripe's `StripeObject` in SDK 15.x (`KeyError: 0`);
+    fixed with `event.to_dict(recursive=True)`.
+  - A test fake for `create_checkout_session` was `async def` while the real function
+    is sync (called via `asyncio.to_thread`); made the fake sync.
+  - `_tenant_for_subscription` was called without `await` in two handlers — a coroutine
+    leaked into `update_subscription` (`DataError`); added the missing awaits.
+- **Verified:** 28/28 tests green (forged sig rejected 400 with no DB change, replay
+  applied exactly once, Free→Pro flip via signed event, past_due → 402, deleted →
+  canceled, unknown tenant → unhandled-but-deduped, checkout session + 503 paths).
+  **Live Stripe CLI trigger is the next gate and still requires a credential decision.**
+

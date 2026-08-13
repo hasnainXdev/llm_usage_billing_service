@@ -62,21 +62,62 @@ async def client(pool):
 
 @pytest.fixture
 def make_tenant(pool):
-    async def _make(*, name: str = "Demo Tenant", plan: str = "free", status: str = "active") -> str:
+    async def _make(
+        *,
+        name: str = "Demo Tenant",
+        plan: str = "free",
+        status: str = "active",
+        stripe_subscription_id: str | None = None,
+        stripe_customer_id: str | None = None,
+    ) -> str:
         async with pool.acquire() as conn:
             tid = await conn.fetchval(
                 "INSERT INTO tenants (name) VALUES ($1) RETURNING id", name
             )
             pid = await conn.fetchval("SELECT id FROM plans WHERE code = $1", plan)
             await conn.execute(
-                "INSERT INTO subscriptions (tenant_id, plan_id, status) VALUES ($1, $2, $3)",
+                """
+                INSERT INTO subscriptions
+                    (tenant_id, plan_id, status, stripe_subscription_id, stripe_customer_id)
+                VALUES ($1, $2, $3, $4, $5)
+                """,
                 tid,
                 pid,
                 status,
+                stripe_subscription_id,
+                stripe_customer_id,
             )
         return str(tid)
 
     return _make
+
+
+@pytest.fixture
+def fetch_subscription(pool):
+    """Fetch a tenant's subscription row joined with its plan code."""
+
+    async def _fetch(tenant_id: str) -> dict:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT s.*, p.code AS plan_code
+                FROM subscriptions s JOIN plans p ON p.id = s.plan_id
+                WHERE s.tenant_id = $1
+                """,
+                uuid.UUID(tenant_id),
+            )
+        return dict(row) if row else None
+
+    return _fetch
+
+
+@pytest.fixture
+def count_stripe_events(pool):
+    async def _count() -> int:
+        async with pool.acquire() as conn:
+            return await conn.fetchval("SELECT count(*) FROM stripe_events")
+
+    return _count
 
 
 @pytest.fixture

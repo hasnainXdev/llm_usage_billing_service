@@ -56,7 +56,20 @@ or log line) below. No placeholders. Updated as gates pass.
 ## Stripe integration
 
 - [ ] Subscription checkout works end-to-end in test mode.
-- [ ] Webhooks verify signatures, ignore duplicate events, update tenant plan/status.
+- [x] Webhooks verify signatures, ignore duplicate events, update tenant plan/status.
+
+  Forged signature → 400 `invalid_signature`, no DB change; replay → `duplicate`,
+  applied exactly once; signed `checkout.session.completed` flips a tenant Free→Pro:
+  ```
+  tests/test_stripe.py::test_forged_signature_rejected_400_no_db_change PASSED
+  tests/test_stripe.py::test_replay_applied_once PASSED            # 1 dedup row, plan=pro, cus=cus_test_1
+  tests/test_stripe.py::test_checkout_completed_flips_tenant_free_to_pro PASSED
+  tests/test_stripe.py::test_subscription_updated_sets_status_and_period PASSED  # past_due → 402 on /generate
+  tests/test_stripe.py::test_subscription_deleted_sets_canceled PASSED
+  tests/test_stripe.py::test_checkout_endpoint_503_when_stripe_not_configured PASSED
+  ```
+  (Live `stripe trigger checkout.session.completed` against a real test-mode key is
+  pending a credential decision — see BUILDLOG Phase 3.)
 
 ## Data model, tests & docs
 

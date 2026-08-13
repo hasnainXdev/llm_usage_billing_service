@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "postgresql://flyrank:flyrank@localhost:5432/flyrank"
+    app_base_url: str = "http://localhost:8000"
 
     # Stripe — TEST MODE ONLY, forever. Placeholders live in .env (gitignored).
     stripe_secret_key: str = ""

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 import asyncpg
 from fastapi import FastAPI
 
-from app.api import generate, usage
+from app.api import checkout, generate, usage, webhooks
 from app.repositories.db import create_pool
 
 
@@ -32,6 +32,8 @@ def create_app(pool: asyncpg.Pool | None = None) -> FastAPI:
     app.state.pool = pool
     app.include_router(generate.router)
     app.include_router(usage.router)
+    app.include_router(checkout.router)
+    app.include_router(webhooks.router)
 
     @app.get("/health")
     async def health():
