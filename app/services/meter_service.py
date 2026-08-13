@@ -1,4 +1,4 @@
-"""MeterService — the single write path for billable actions.
+"""MeterService - the single write path for billable actions.
 
 Per the fixed architecture:
 

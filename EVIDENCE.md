@@ -1,11 +1,11 @@
-# EVIDENCE — one pasted proof per Definition-of-Done box
+# EVIDENCE - one pasted proof per Definition-of-Done box
 
 A box is done only when it has a real, pasted proof (test output, curl transcript,
 or log line) below. No placeholders. Updated as gates pass.
 
 ## Metering
 
-- [x] A billable action creates exactly one usage event, even under retries — dedup by idempotency key.
+- [x] A billable action creates exactly one usage event, even under retries - dedup by idempotency key.
 
   Live curl transcript (server on `localhost:8000`, seeded demo tenant):
   ```
@@ -28,7 +28,7 @@ or log line) below. No placeholders. Updated as gates pass.
 
 - [x] Usage is checked against the tenant's plan; over-limit requests are rejected.
 
-  Live transcript — fill 999 → land exactly on 1000 (allowed) → 1 more → rejected:
+  Live transcript - fill 999 → land exactly on 1000 (allowed) → 1 more → rejected:
   ```
   $ ... -d '{"usage_type":"api_call","quantity":999}'      -> {"used":999,"limit":1000,...}
   $ ... -d '{"usage_type":"api_call","quantity":1}'        -> {"used":1000,"limit":1000,...}   (exact boundary allowed)
@@ -74,14 +74,14 @@ or log line) below. No placeholders. Updated as gates pass.
   ```
 
   Live `stripe trigger checkout.session.completed` (real signed event, overridden
-  `client_reference_id` = demo tenant) — tenant flipped Free → Pro, event ledgered once:
+  `client_reference_id` = demo tenant) - tenant flipped Free → Pro, event ledgered once:
   ```
   $ stripe trigger checkout.session.completed --override checkout_session:client_reference_id=<demo>
   Trigger succeeded!
   DB: SELECT p.code, s.status ... WHERE name='Demo Tenant'  ->  pro | active
   ```
 
-  Live replay dedup — same real event replayed twice → `duplicate`, ledger still 1 row, DB unchanged:
+  Live replay dedup - same real event replayed twice → `duplicate`, ledger still 1 row, DB unchanged:
   ```
   $ curl -s -X POST /webhooks/stripe -H "stripe-signature: t=...,v1=..." --data-binary @evt_1U3xwB...
   {"received":true,"outcome":"duplicate"}     # replay 1
@@ -89,7 +89,7 @@ or log line) below. No placeholders. Updated as gates pass.
   DB: SELECT count(*) FROM stripe_events WHERE stripe_event_id='evt_1U3xwBD3cXvEk4xp0ddMPx4p'  ->  1
   ```
 
-  Live status mirroring via real Stripe objects — `metadata.tenant_id` update fired
+  Live status mirroring via real Stripe objects - `metadata.tenant_id` update fired
   `customer.subscription.updated` (tenant mapped, plan/status/customer stored), then real
   cancellation fired `customer.subscription.deleted` (tenant → `canceled`):
   ```

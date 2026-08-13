@@ -72,7 +72,7 @@ async def test_reasoning_is_priced_as_output(client, make_tenant):
 
 async def test_token_categories_have_individual_rates(client, make_tenant):
     tid = await make_tenant()
-    # 4,000 tokens: one of each category — a flat rate could not explain this.
+    # 4,000 tokens: one of each category - a flat rate could not explain this.
     await _post(client, tid, "a", {"usage_type": "ai_token", "token_category": "input", "quantity": 1_000})
     await _post(client, tid, "b", {"usage_type": "ai_token", "token_category": "cached_input", "quantity": 1_000})
     await _post(client, tid, "c", {"usage_type": "ai_token", "token_category": "output", "quantity": 1_000})

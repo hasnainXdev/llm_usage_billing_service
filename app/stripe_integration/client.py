@@ -1,8 +1,8 @@
-"""Stripe client — the ONLY place that imports the Stripe SDK.
+"""Stripe client - the ONLY place that imports the Stripe SDK.
 
 Checkout is test-mode only, forever. Money crosses this boundary as integer
 cents (Stripe's minor unit), converted from integer micro-units via
-money.micro_to_cents — never a float.
+money.micro_to_cents - never a float.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-# Design doc — flyrank-capstone-metering-billing
+# Design doc - flyrank-capstone-metering-billing
 
 ## Problem
 
@@ -10,21 +10,21 @@ replays: no double-counting, no double-applied events.
 ## Scope lock (from the brief)
 
 Exactly **2 plans** (Free / Pro), exactly **2 usage types** (API calls + AI
-tokens, simulated — no model call, no AI key), exactly **1 billable endpoint**
+tokens, simulated - no model call, no AI key), exactly **1 billable endpoint**
 (`POST /generate`). No invoicing, no proration, no overage billing in core.
 
 ## Data model (migrations: `app/db/migrations/001_initial_schema.sql`)
 
-- `tenants(id, name, created_at)` — the customer.
-- `plans(id, code UNIQUE, name, api_call_limit, ai_token_limit, price_micro, created_at)` —
+- `tenants(id, name, created_at)` - the customer.
+- `plans(id, code UNIQUE, name, api_call_limit, ai_token_limit, price_micro, created_at)` -
   monthly limits and price pinned as integers; seeded from `app/domain/plans.py`.
 - `subscriptions(id, tenant_id UNIQUE FK, plan_id FK, status, stripe_customer_id,
-  stripe_subscription_id, current_period_end, created_at, updated_at)` — one row
+  stripe_subscription_id, current_period_end, created_at, updated_at)` - one row
   per tenant; `status` is a mirror of Stripe, never the source of truth.
 - `usage_events(id, tenant_id FK, usage_type, quantity, idempotency_key,
-  cost_micro, created_at, UNIQUE(tenant_id, idempotency_key))` — one row per
+  cost_micro, created_at, UNIQUE(tenant_id, idempotency_key))` - one row per
   metered action, ever.
-- `stripe_events(id, stripe_event_id UNIQUE, event_type, received_at)` — webhook
+- `stripe_events(id, stripe_event_id UNIQUE, event_type, received_at)` - webhook
   dedup ledger.
 
 **Tenant isolation:** every tenant-scoped table has `tenant_id` FK and every
@@ -75,7 +75,7 @@ Swapping the DB or the payment provider never touches business logic.
 
 `POST /generate` requires an `Idempotency-Key` header (any client-chosen string,
 scoped per tenant). The key is stored in `usage_events.idempotency_key` under a
-`UNIQUE (tenant_id, idempotency_key)` constraint — **the database, not
+`UNIQUE (tenant_id, idempotency_key)` constraint - **the database, not
 application logic, is the dedup authority.** On each request the service opens a
 transaction, locks the tenant's subscription row with `SELECT … FOR UPDATE`
 (serializing that tenant's concurrent writes so quota checks cannot race), then
@@ -84,8 +84,8 @@ RETURNING …`. If a row is returned the request is fresh: the quota check runs 
 if used+requested would exceed the limit, the transaction rolls back (no event
 persists, the request is retryable) and the client receives 429/402. If the
 insert conflicts, the key was already recorded: the service fetches the stored
-row and returns the **original** result — its stored `cost_micro`, event id, and
-`deduplicated: true` — with no quota check and no new event. A retried request
+row and returns the **original** result - its stored `cost_micro`, event id, and
+`deduplicated: true` - with no quota check and no new event. A retried request
 therefore always returns the original response and can never create a second
 `usage_event` row, even under concurrent duplicate delivery, because two racing
 inserts cannot both win a unique constraint. Cost is locked at record time in

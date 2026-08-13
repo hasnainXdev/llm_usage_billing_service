@@ -29,7 +29,7 @@ def micro_to_cents(amount_micro: int) -> int:
 
 
 def ceil_div(numerator: int, denominator: int) -> int:
-    """Ceiling of an integer division — the only rounding money ever uses.
+    """Ceiling of an integer division - the only rounding money ever uses.
 
     Deterministic, integer-only, and never loses a fraction to a float.
     """

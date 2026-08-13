@@ -1,9 +1,9 @@
-# BUILDLOG — honest record of how this was built
+# BUILDLOG - honest record of how this was built
 
 Kept current as the build progresses. Every entry notes where AI (opencode) helped,
 where it was wrong, and what the human changed.
 
-## 2026-08-13 — Phase 1 (design, schema, idempotency strategy)
+## 2026-08-13 - Phase 1 (design, schema, idempotency strategy)
 
 - **Human set up:** `uv init` scaffold in this directory, `.venv` on Python 3.14,
   git repo on branch `main`. The repo was already named and created as a uv project,
@@ -18,7 +18,7 @@ where it was wrong, and what the human changed.
   (`app/db/migrate.py`), `docs/design.md`, `.env.example`, `docker-compose.yml`.
 - **Decisions made by the AI and kept (so far):**
   - Money is integer micro-units (1 USD = 1,000,000 micro). A `require_int` guard
-    refuses any float entering a money value — the brief's hard rule.
+    refuses any float entering a money value - the brief's hard rule.
   - Idempotency is enforced by a DB `UNIQUE (tenant_id, idempotency_key)` constraint
     plus `INSERT … ON CONFLICT DO NOTHING`, inside a transaction that locks the
     tenant's subscription row (`FOR UPDATE`) so quota checks can't race.
@@ -28,12 +28,12 @@ where it was wrong, and what the human changed.
     (cheaper), output 15,000 micro/1K, reasoning 15,000 micro/1K (priced as output).
   - Plans: Free 1,000 calls + 100k tokens/mo ($0); Pro 100,000 calls + 10M tokens/mo ($20).
 - **Where the AI was wrong / corrected:** the first draft of `pricing.py` had a stray
-  dead line (`require_int_strings = True`) — removed before commit. No other
+  dead line (`require_int_strings = True`) - removed before commit. No other
   corrections this phase.
 - **Verified:** migration applies and is idempotent; cost math returns only ints;
   a float `quantity` is refused with `TypeError`.
 
-## Phase 2 — metering + quota enforcement
+## Phase 2 - metering + quota enforcement
 
 - **AI wrote:** repositories over asyncpg (`usage_repo`, `subscription_repo`,
   `tenant_repo`), `MeterService` (idempotent insert + quota check in one
@@ -54,20 +54,20 @@ where it was wrong, and what the human changed.
   - Cost is locked on the event at record time (`cost_micro`), so dedup replays and
     rollups are exact integer sums.
 - **Where the AI was wrong / corrected:**
-  - First pytest run failed: `app` module not importable — fixed with pytest
+  - First pytest run failed: `app` module not importable - fixed with pytest
     `pythonpath = ["."]`.
   - `app.state.pool` was only set inside lifespan, so ASGI test clients (which never
     run lifespan) crashed; set eagerly in `create_app`.
-  - FastAPI wraps `HTTPException` detail under `"detail"` — flattened all error
+  - FastAPI wraps `HTTPException` detail under `"detail"` - flattened all error
     bodies to a consistent `{code, detail, ...}` via `JSONResponse`.
   - One test data bug: the multi-category cost test exceeded the Free token limit;
     switched it to a Pro tenant (also cross-checks plan limits).
 - **Verified:** 19/19 tests green; live `uvicorn` smoke test showed dedup,
   exact-boundary allow, 429 with message, and a correct `GET /usage` rollup.
 
-## Phase 3+ — (to be appended as work happens)
+## Phase 3+ - (to be appended as work happens)
 
-## Phase 3 — Stripe integration (offline), gate: 28/28 tests green
+## Phase 3 - Stripe integration (offline), gate: 28/28 tests green
 
 - **AI wrote:** `stripe_integration/client.py` (test-mode Checkout Session creation
   via the new sync `StripeClient` API, no network calls), `stripe_integration/webhook.py`
@@ -90,12 +90,12 @@ where it was wrong, and what the human changed.
     fixed with `event.to_dict(recursive=True)`.
   - A test fake for `create_checkout_session` was `async def` while the real function
     is sync (called via `asyncio.to_thread`); made the fake sync.
-  - `_tenant_for_subscription` was called without `await` in two handlers — a coroutine
+  - `_tenant_for_subscription` was called without `await` in two handlers - a coroutine
     leaked into `update_subscription` (`DataError`); added the missing awaits.
 - **Verified:** 28/28 tests green (forged sig rejected 400 with no DB change, replay
   applied exactly once, Free→Pro flip via signed event, past_due → 402, deleted →
   canceled, unknown tenant → unhandled-but-deduped, checkout session + 503 paths).
-- **LIVE GATE — real Stripe test-mode run (human's own test account):**
+- **LIVE GATE - real Stripe test-mode run (human's own test account):**
   - Human ran `stripe login` (OAuth, browser) → CLI stored `sk_test_...`; `stripe listen
     --forward-to localhost:8000/webhooks/stripe` printed the real `whsec_...`, which was
     written to `.env` (gitignored). Also fixed a stale `.env` where a `pk_test_` line had
@@ -110,10 +110,10 @@ where it was wrong, and what the human changed.
     stored; real `stripe subscriptions cancel --confirm` fired `customer.subscription.deleted`
     → tenant2 status=canceled.
   - **Where the AI was wrong / corrected (live):** the first `stripe trigger` used
-    `--override checkout:...` — the fixture key is `checkout_session`, so `client_reference_id`
+    `--override checkout:...` - the fixture key is `checkout_session`, so `client_reference_id`
     stayed null (event correctly recorded as `unhandled`); and injecting
     `checkout_session:subscription=sub_...` fails because `subscription` is not a
-    session-create parameter (it's populated by Stripe only after a real purchase) —
+    session-create parameter (it's populated by Stripe only after a real purchase) -
     so the live demo drives the status path with real subscription objects instead.
     Stripe CLI also needs `--confirm` on destructive commands, and test `pm_card_visa`
     isn't valid as a PaymentMethod id (used `-d source=tok_visa` instead).

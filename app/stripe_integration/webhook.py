@@ -1,7 +1,7 @@
 """Webhook signature verification. The whsec_ secret lives in .env (gitignored).
 
 Returns the verified event as a plain dict, or None when the signature is
-missing, malformed, or forged — a forged request must never touch the DB.
+missing, malformed, or forged - a forged request must never touch the DB.
 """
 
 from __future__ import annotations

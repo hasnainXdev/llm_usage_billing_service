@@ -1,4 +1,4 @@
-"""CostService — monthly cost rollup per tenant.
+"""CostService - monthly cost rollup per tenant.
 
 Rolls up a tenant's usage_events into { used, limit, cost }. Costs are summed
 from the integer cost_micro locked on each event at record time; token

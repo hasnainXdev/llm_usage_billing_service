@@ -1,4 +1,4 @@
-"""Metering tests — the Definition-of-Done "no double-counting" proofs."""
+"""Metering tests - the Definition-of-Done "no double-counting" proofs."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ async def test_retry_returns_original_result_without_double_counting(
         client, tid, "same-key",
         {"usage_type": "ai_token", "token_category": "input", "quantity": 1000},
     )
-    # Same idempotency key but a DIFFERENT body — must return the original result.
+    # Same idempotency key but a DIFFERENT body - must return the original result.
     retry = await _post(
         client, tid, "same-key",
         {"usage_type": "ai_token", "token_category": "output", "quantity": 999_999},

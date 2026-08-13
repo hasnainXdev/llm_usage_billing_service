@@ -1,6 +1,6 @@
 """Seed plans (single source of truth: app/domain/plans.py) plus a demo tenant.
 
-Idempotent — safe to run repeatedly. Run with:
+Idempotent - safe to run repeatedly. Run with:
     uv run python -m app.db.seed
 """
 

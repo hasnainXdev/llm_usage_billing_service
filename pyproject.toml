@@ -1,7 +1,7 @@
 [project]
 name = "llm-usage-billing-service"
 version = "0.1.0"
-description = "LLM usage metering and billing service — meters billable actions per tenant, enforces monthly quotas per plan, rolls usage into integer-micro cost figures, and upgrades plans via Stripe Checkout (test mode only)."
+description = "LLM usage metering and billing service - meters billable actions per tenant, enforces monthly quotas per plan, rolls usage into integer-micro cost figures, and upgrades plans via Stripe Checkout (test mode only)."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [

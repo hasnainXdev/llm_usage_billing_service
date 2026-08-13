@@ -1,4 +1,4 @@
-"""Stripe integration tests — signature verification, dedup, plan flip.
+"""Stripe integration tests - signature verification, dedup, plan flip.
 
 No Stripe account needed: events are signed locally with the same HMAC-SHA256
 scheme Stripe uses, so `stripe.Webhook.construct_event` verifies them for real.

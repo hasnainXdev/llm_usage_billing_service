@@ -3,16 +3,16 @@
 Standalone LLM usage-metering and billing service (capstone project).
 
 Meters billable actions per tenant, enforces monthly quotas per plan, aggregates
-usage into costs, and lets tenants upgrade plans through Stripe Checkout —
+usage into costs, and lets tenants upgrade plans through Stripe Checkout -
 **test mode only, forever**. AI token usage is simulated; no model is ever called.
 
 ## What it does
 
 - Exactly 2 plans: **Free** and **Pro**, with pinned monthly quotas (config).
 - Exactly 2 usage types: **API calls** and **AI tokens** (simulated).
-- Exactly 1 billable endpoint: `POST /generate` — idempotent, quota-checked,
+- Exactly 1 billable endpoint: `POST /generate` - idempotent, quota-checked,
   returns a cost figure.
-- `GET /usage` — monthly rollup `{ used, limit, cost }` per tenant.
+- `GET /usage` - monthly rollup `{ used, limit, cost }` per tenant.
 - Stripe Checkout (test mode) upgrades a tenant's plan; signed webhooks keep the
   database a mirror of Stripe's truth (never the source).
 - All money is integer micro-units (1 USD = 1,000,000 micro). No floats anywhere
@@ -41,8 +41,8 @@ usage into costs, and lets tenants upgrade plans through Stripe Checkout —
 
 ## Run + seed
 
-_Skeleton — full instructions land in Phase 4._
+_Skeleton - full instructions land in Phase 4._
 
 ## Honest limitations
 
-_Skeleton — written up honestly as the build progresses._
+_Skeleton - written up honestly as the build progresses._

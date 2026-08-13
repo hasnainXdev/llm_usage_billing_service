@@ -6,7 +6,7 @@ here and covered by tests; they are the single source of truth for cost.
 AI-token pricing rules (per the brief, encoded precisely):
   - cached input tokens are cheaper than fresh input tokens;
   - reasoning tokens are priced as output tokens, never their own category;
-  - each token category has its own rate — categories are never summed at one
+  - each token category has its own rate - categories are never summed at one
     flat rate.
 """
 
@@ -22,7 +22,7 @@ AI_TOKEN_RATE_MICRO_PER_1K: dict[str, int] = {
     "ai_input": 3_000,  # $3.00 / 1M fresh input tokens
     "ai_cached_input": 300,  # $0.30 / 1M cached input tokens (cheaper)
     "ai_output": 15_000,  # $15.00 / 1M output tokens
-    "ai_reasoning": 15_000,  # reasoning priced as output — same rate, own key
+    "ai_reasoning": 15_000,  # reasoning priced as output - same rate, own key
 }
 
 AI_TOKEN_CATEGORIES: tuple[str, ...] = tuple(AI_TOKEN_RATE_MICRO_PER_1K)

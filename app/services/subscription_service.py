@@ -1,4 +1,4 @@
-"""SubscriptionService — keeps the DB a mirror of Stripe's truth.
+"""SubscriptionService - keeps the DB a mirror of Stripe's truth.
 
 Called only from the webhook path with already-verified, already-deduplicated
 events. The dedup insert and the state update happen in ONE transaction, so a
