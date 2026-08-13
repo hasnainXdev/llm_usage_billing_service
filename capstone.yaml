@@ -1,0 +1,37 @@
+# capstone.yaml — manifest for the capstone submission.
+# Kept current as the build progresses.
+
+service: flyrank-capstone-metering-billing
+
+base_url: http://localhost:8000
+
+run:
+  - "docker compose up -d"                    # Postgres 16
+  - "uv run python -m app.db.migrate"         # apply migrations
+  - "uv run python -m app.db.seed"            # seed plans + demo tenant
+  - "uv run uvicorn app.main:app --port 8000" # serve the API
+  - "stripe listen --forward-to localhost:8000/webhooks/stripe"  # webhook bridge (test mode)
+
+seed:
+  - "uv run python -m app.db.seed"
+
+test:
+  - "uv run pytest -q"                        # full suite (requires Postgres running)
+
+endpoints:
+  - name: generate
+    method: POST
+    path: /generate
+    headers: [X-Tenant-Id, Idempotency-Key]
+  - name: usage
+    method: GET
+    path: /usage
+    headers: [X-Tenant-Id]
+  - name: checkout
+    method: POST
+    path: /billing/checkout
+  - name: stripe-webhook
+    method: POST
+    path: /webhooks/stripe
+
+probe_headers: { X-Tenant-Id: "<seeded demo tenant uuid>" }
