@@ -1,0 +1,33 @@
+# --- Python ---
+__pycache__/
+*.py[oc]
+*.egg-info/
+build/
+dist/
+.eggs/
+.mypy_cache/
+.ruff_cache/
+
+# --- Virtual environments ---
+.venv/
+venv/
+
+# --- Environment / secrets (REAL keys must never be committed) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Tests / coverage ---
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Stripe CLI local state ---
+.whsec
+stripe-*.log
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
