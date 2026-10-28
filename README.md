@@ -1,6 +1,6 @@
 # flyrank-capstone-metering-billing
 
-(https://github.com/hasnainXdev/llm_usage_billing_service/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/hasnainXdev/llm_usage_billing_service/actions/workflows/ci.yml/badge.svg)
 
 Standalone LLM usage-metering and billing service (capstone project).
 
