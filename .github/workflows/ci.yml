@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies (Python version comes from .python-version)
+        run: uv sync
+
+      - name: Create env file from the example
+        run: cp .env.example .env
+
+      - name: Start Postgres
+        run: docker compose up -d
+
+      - name: Wait for Postgres, then migrate
+        run: |
+          for i in $(seq 1 30); do
+            uv run python -m app.db.migrate && exit 0
+            sleep 2
+          done
+          echo "Postgres never became ready" && exit 1
+
+      - name: Run tests
+        run: uv run pytest -q
